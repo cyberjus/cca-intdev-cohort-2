@@ -1,0 +1,19 @@
+.shop-sign {
+  background: #000;
+  color: #fff;
+  padding: 20px 40px;
+  font-size: 30px;
+  font-weight: bold;
+  border-radius: 19px;
+  transform: rotate(-5deg);
+  display: inline-block;
+  margin: 10px;
+}
+
+.shop-sign_open {
+  background-color: #1B5E20;
+}
+
+.shop-sign_closed {
+  background-color: #B71C1C;
+}

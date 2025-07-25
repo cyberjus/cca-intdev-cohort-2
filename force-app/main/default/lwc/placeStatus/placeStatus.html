@@ -1,0 +1,46 @@
+<template>
+  <lightning-card icon-name="utility:location" variant="base">
+    <div slot="title">Open Status</div>
+    <div class="slds-p-around_small">
+      <template if:true={place}>
+        <template if:true={hasPlaceId}>
+          <div class="slds-align_center">
+            <template if:true={place.openNow}>
+              <span class="shop-sign shop-sign_open">Open</span>
+            </template>
+            <template if:false={place.openNow}>
+              <span class="shop-sign shop-sign_closed">Closed</span>
+            </template>
+          </div>
+        </template>
+        <template if:false={hasPlaceId}>
+          <div class="slds-text-title slds-m-bottom_small">
+            Google Place not set. Please confirm the found place below.
+          </div>
+          <div class="slds-text-heading_small slds-align_center">
+            {place.name}
+          </div>
+          <div class="slds-align_center slds-m-bottom_medium">
+            {place.formattedAddress}
+          </div>
+          <lightning-button
+            onclick={handleClickSave}
+            variant="brand"
+            label="Confirm Place"
+          ></lightning-button>
+        </template>
+      </template>
+      <template if:true={error}>
+        <div
+          class="slds-notify slds-notify_alert slds-alert_error"
+          role="alert"
+        >
+          <h2>{error.body.message}</h2>
+        </div>
+      </template>
+      <template if:false={place}>
+        <lightning-spinner></lightning-spinner>
+      </template>
+    </div>
+  </lightning-card>
+</template>

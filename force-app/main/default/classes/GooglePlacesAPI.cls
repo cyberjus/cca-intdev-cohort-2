@@ -2,45 +2,103 @@ public with sharing class GooglePlacesAPI {
   public GooglePlacesAPI() {
   }
 
-  public static void getPlaceDetails(String placeId) {
-    Http http = new Http();
-
-    HttpRequest request = new HttpRequest();
-    request.setEndpoint(
-      'https://places.googleapis.com/v1/places/' +
-        placeId +
-        '?fields=displayName,formattedAddress,regularOpeningHours&key=' +
-        GoogleSecretKey.key
+  public static GooglePlacesPlace getPlaceDetails(String placeId) {
+    String res = sendRequest(
+      '/places/' + placeId,
+      'GET',
+      'displayName,formattedAddress,regularOpeningHours',
+      null
     );
-    request.setMethod('GET');
 
-    HttpResponse response = http.send(request);
-    System.debug(response.getBody());
+    System.debug(res);
 
-    Map<String, Object> resMap = (Map<String, Object>) JSON.deserializeUntyped(
-      response.getBody()
+    GooglePlacesPlace place = (GooglePlacesPlace) JSON.deserialize(
+      res,
+      GooglePlacesPlace.class
     );
-    Map<String, Object> displayName = (Map<String, Object>) resMap.get(
-      'displayName'
-    );
-    System.debug('Business Name: ' + displayName.get('text'));
+
+    System.debug('Place: ' + place);
+
+    System.debug('+++++ Business Name: ' + place.displayName.text);
+
+    return place;
   }
 
-  public static void searchPlaceDetails(String searchStr) {
-    Http http = new Http();
+  public static GooglePlacesPlace searchPlaceDetails(String searchStr) {
+    GooglePlacesPlaceSearch placeSearch = new GooglePlacesPlaceSearch();
+    placeSearch.textQuery = searchStr;
 
-    HttpRequest request = new HttpRequest();
-    request.setEndpoint('https://places.googleapis.com/v1/places:searchText');
-    request.setMethod('POST');
-    request.setBody('{"textQuery" : "' + searchStr + '"}');
-    request.setHeader('Content-Type', 'application/json');
-    request.setHeader('X-Goog-Api-Key', GoogleSecretKey.key);
-    request.setHeader(
-      'X-Goog-FieldMask',
-      'places.id,places.displayName,places.formattedAddress,places.regularOpeningHours'
+    String res = sendRequest(
+      '/places:searchText',
+      'POST',
+      'places.id,places.displayName,places.formattedAddress,places.regularOpeningHours',
+      placeSearch
     );
 
-    HttpResponse response = http.send(request);
-    System.debug(response.getBody());
+    System.debug(res);
+
+    PlaceSearchResponse searchRes = (PlaceSearchResponse) JSON.deserialize(
+      res,
+      PlaceSearchResponse.class
+    );
+    if (searchRes.places.isEmpty()) {
+      return null;
+    } else {
+      return searchRes.places.get(0);
+    }
+  }
+
+  private static String sendRequest(
+    String endpoint,
+    String method,
+    String fields,
+    Object body
+  ) {
+    try {
+      Http http = new Http();
+
+      HttpRequest request = new HttpRequest();
+      request.setEndpoint('callout:GooglePlaces' + endpoint);
+      request.setMethod(method);
+
+      request.setHeader('X-Goog-FieldMask', fields);
+
+      if (body != null)
+        request.setBody(JSON.serialize(body));
+
+      HttpResponse response = http.send(request);
+
+      if (response.getStatusCode() != 200) {
+        // Handle Error
+        GooglePlacesError error = (GooglePlacesError) JSON.deserialize(
+          response.getBody(),
+          GooglePlacesError.class
+        );
+
+        throw new GooglePlacesException(error.error.message);
+      } else {
+        return response.getBody();
+      }
+    } catch (Exception e) {
+      System.debug(e.getMessage());
+      System.debug(e.getStackTraceString());
+      throw new GooglePlacesException('Google Places Error: ' + e.getMessage());
+    }
+  }
+
+  public class PlaceSearchResponse {
+    public List<GooglePlacesPlace> places;
+  }
+
+  public class GooglePlacesError {
+    public APIError error;
+  }
+
+  public class APIError {
+    public String code;
+    public String message;
+  }
+
+  public class GooglePlacesException extends Exception {
   }
 }
